@@ -37,8 +37,7 @@ class GraphConvolution(Module):
         super(GraphConvolution, self).__init__()
         self.in_features = in_features
         self.out_features = out_features
-        self.weight_x = nn.Linear(in_features, out_features, bias=False)
-        self.weight_neib = nn.Linear(in_features, out_features, bias=False)
+        self.weight = nn.Linear(2*in_features, out_features, bias=False)
         
         self.norm = norm
         if with_bias:
@@ -52,14 +51,12 @@ class GraphConvolution(Module):
     def reset_parameters(self):
         stdv = 1. / math.sqrt(self.weight_x.size(1))
         self.weight_x.data.uniform_(-stdv, stdv)
-        self.weight_neib.data.uniform_(-stdv, stdv)
         if self.bias is not None:
             self.bias.data.uniform_(-stdv, stdv)
 
     def forward(self, x, adj, relu=False):
-        self.bias = None 
         neib = torch.spmm(adj, x)
-        output = self.weight_x(x) + self.weight_neib(neib) 
+        output = self.weight(torch.cat((neib, x), 1))
         if self.bias is not None:
             return output + self.bias
         else:
@@ -88,10 +85,7 @@ class GNN(nn.Module):
         assert self.agg in ['mean', 'sum']
         assert self.norm in [0,1,2,3]
         self.gc1 = GraphConvolution(nfeat, nhid, with_bias=with_bias, norm=norm)
-        self.gc2 = GraphConvolution(nhid, nhid, with_bias=with_bias, norm=norm)
-        self.fc = nn.Linear(nhid, nclass)
-        #torch.nn.init.xavier_uniform_(self.fc.weight.data)
-        #self.fc.bias.data.fill_(0)
+        self.gc2 = GraphConvolution(nhid, nclass, with_bias=with_bias, norm=norm)
 
         self.dropout = dropout
         self.lr = lr
@@ -117,7 +111,6 @@ class GNN(nn.Module):
         x = F.dropout(x, self.dropout, training=self.training)
         x = F.relu(x)
         x = self.gc2(x, adj)
-        x = self.fc(x)
         return F.log_softmax(x, dim=1)
 
 
@@ -162,8 +155,6 @@ class GNN(nn.Module):
         self.adj_norm = adj_norm
         self.features = features
         self.labels = labels
-        #self.adj2 = adj2 * (1 - torch.eye(adj2.size(0)).cuda())
-        #self.adj2 = self.normalize_adj(self.adj2)
 
         if idx_val is None:
             self._train_without_val(labels, idx_train, train_iters, verbose)
