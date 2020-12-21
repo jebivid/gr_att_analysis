@@ -65,6 +65,11 @@ class BaseMeta(BaseAttack):
     def attack(self, adj, labels, n_perturbations):
         pass
 
+    def binarize_adj(self, adj_norm):
+        adj_norm = adj_norm * (1 - torch.eye(adj_norm.size(0), device=adj_norm.device))
+        adj_norm[adj_norm > 0] = 1
+        return adj_norm
+
     def get_modified_adj(self, ori_adj):
         adj_changes_square = self.adj_changes - torch.diag(torch.diag(self.adj_changes, 0))
         ind = np.diag_indices(self.adj_changes.shape[0])
@@ -352,7 +357,8 @@ class Metattack(BaseMeta):
             if self.attack_features:
                 modified_features = ori_features + self.feature_changes
 
-            adj_norm = utils.normalize_adj_tensor(modified_adj)
+            #adj_norm = utils.normalize_adj_tensor(modified_adj)
+            adj_norms = self.binarize(modified_adj)
             self.inner_train(modified_features, adj_norm, idx_train, idx_unlabeled, labels)
 
             adj_grad, feature_grad = self.get_meta_grad(modified_features, adj_norm, idx_train, idx_unlabeled, labels, labels_self_training)
@@ -453,7 +459,8 @@ class MetaApprox(BaseMeta):
         self.optimizer = optim.Adam(self.weights + self.biases, lr=self.lr)
 
     def inner_train(self, features, modified_adj, idx_train, idx_unlabeled, labels, labels_self_training):
-        adj_norm = utils.normalize_adj_tensor(modified_adj)
+        #adj_norm = utils.normalize_adj_tensor(modified_adj)
+        adj_norms = self.binarize(modified_adj)
         for j in range(self.train_iters):
             # hidden = features
             # for w, b in zip(self.weights, self.biases):
