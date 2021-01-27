@@ -4,7 +4,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from deeprobust.graph.defense import GCN
 #from deeprobust.graph.global_attack import MetaApprox, Metattack
-from attacks.mettack import MetaApprox, Metattack
+from attacks.mettack_orig_orig import MetaApprox, Metattack
 from deeprobust.graph.utils import *
 from deeprobust.graph.data import Dataset
 import argparse
@@ -29,7 +29,7 @@ parser.add_argument('--model', type=str, default='Meta-Self', choices=['A-Meta-S
 args = parser.parse_args()
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
+print(device)
 np.random.seed(args.seed)
 torch.manual_seed(args.seed)
 if device != 'cpu':
@@ -46,7 +46,7 @@ adj, features, labels = preprocess(adj, features, labels, preprocess_adj=False)
 np.savez('./splits/{}_{}'.format(args.dataset, args.seed), train=idx_train, val=idx_val, test=idx_test)
 features2 = features.clone()
 features2[features2 > 0] = 1.
-perturbations = int(args.ptb_rate * torch.sum(features2).item())
+perturbations = int(args.ptb_rate * torch.sum(adj).item()//2)
 
 # Setup Surrogate Model
 surrogate = GCN(nfeat=features.shape[1], nclass=labels.max().item()+1, nhid=16,
@@ -80,7 +80,7 @@ def test(adj):
               nclass=labels.max().item() + 1,
               dropout=args.dropout, device=device)
     gcn = gcn.to(device)
-    gcn.fit(features, adj, labels, idx_train) # train without model picking
+    gcn.fit(features, adj, labels, idx_train, verbose=True) # train without model picking
     # gcn.fit(features, adj, labels, idx_train, idx_val) # train with validation model picking
     output = gcn.output.cpu()
     loss_test = F.nll_loss(output[idx_test], labels[idx_test])
@@ -93,16 +93,16 @@ def test(adj):
 
 
 def main():
+    test(adj) 
     model.attack(features, adj, labels, idx_train, idx_unlabeled, perturbations, ll_constraint=False)
     print('=== testing GCN on original(clean) graph ===')
-    test(adj)
-    #modified_adj = model.modified_adj
-    modified_features = model.modified_features
-    #test(modified_adj)
+    modified_adj = model.modified_adj
+    #modified_features = model.modified_features
+    test(modified_adj)
 
     # if you want to save the modified adj/features, uncomment the code below
-    #model.save_adj(root='./perturbed_adjs_feas/', name='{}_meta_fea_{}_{}'.format(args.dataset, args.ptb_rate, args.seed))
-    model.save_features(root='./perturbed/', name='{}_meta_fea_{}_{}'.format(args.dataset, args.ptb_rate, args.seed))
+    model.save_adj(root='./perturbed_adjs/', name='{}_meta_adj_{}_{}'.format(args.dataset, args.ptb_rate, args.seed))
+    #model.save_features(root='./perturbed_feas/', name='{}_meta_fea_{}_{}'.format(args.dataset, args.ptb_rate, args.seed))
     # model.save_features(root='./', name='mod_features')
 
 if __name__ == '__main__':
