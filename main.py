@@ -30,8 +30,6 @@ parser.add_argument('--nlayer', type=int, default=2, help='Number of layers, wor
 parser.add_argument('--residual', type=int, default=0, help='Residual connection')
 # for PairNorm
 # - PairNorm mode, use PN-SI or PN-SCS for GCN and GAT. With more than 5 layers get lots improvement.
-# not  again comparing different types of normalization
-#see now
 parser.add_argument('--norm_mode', type=str, default='None', help='Mode for PairNorm, {None, PN, PN-SI, PN-SCS}')
 parser.add_argument('--norm_scale', type=float, default=1.0, help='Row-normalization scale')
 # for data

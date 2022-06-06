@@ -14,7 +14,6 @@ class RandFeaGraph(nn.Module):
         h = torch.cat((torch.sin(proj), torch.cos(proj)), 1)
         output = torch.spmm(adj, h)
         return output
-
 class GraphConv(nn.Module):
     def __init__(self, in_features, out_features, bias=True):
         super(GraphConv, self).__init__()
