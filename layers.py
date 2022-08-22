@@ -3,6 +3,7 @@ import torch.nn as nn
 from torch_sparse import spmm # require the newest torch_sprase
 import numpy as np 
 import torch.nn.functional as F
+#inductive
 #sdfd:
 
 #transductive
