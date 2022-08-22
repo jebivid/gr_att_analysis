@@ -4,6 +4,9 @@ from torch_sparse import spmm # require the newest torch_sprase
 import numpy as np 
 import torch.nn.functional as F
 #inductive
+#sdfd:
+
+#transductive
 class RandFeaGraph(nn.Module):
     def __init__(self, in_features, out_features):
         super(RandFeaGraph, self).__init__()
